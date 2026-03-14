@@ -32,6 +32,9 @@ function generateBoard() {
 
 // Logic Mapping for Snakes & Ladders
 const snakes = {
+    12: 2,
+    13: 3,
+    14: 4,
     99: 54,
     87: 24,
     62: 18,
@@ -39,6 +42,8 @@ const snakes = {
 };
 
 const ladders = {
+    16: 36,
+    17: 37,
     3: 22,
     15: 44,
     40: 65,

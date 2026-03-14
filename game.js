@@ -22,6 +22,14 @@ sfxBtn.addEventListener('click', () => {
     sfxBtn.style.opacity = active ? '1' : '0.5';
 });
 
+function enableAllSoundsForNewGame() {
+    window.AudioSys.sfxEnabled = true;
+    window.AudioSys.bgmEnabled = true;
+    window.AudioSys.startBGM();
+    bgmBtn.style.opacity = '1';
+    sfxBtn.style.opacity = '1';
+}
+
 function updateTokenPosition(square) {
     const playerToken = document.getElementById('playerToken');
     if (!playerToken) return;
@@ -124,6 +132,11 @@ diceBtn.addEventListener('click', async () => {
         moveCountEl.innerText = '0';
         currentScoreEl.innerText = '0';
         updateTokenPosition(playerPosition);
+    }
+
+    // Ensure sound defaults are re-enabled when a new run starts.
+    if (moveCount === 0 && playerPosition === 1) {
+        enableAllSoundsForNewGame();
     }
 
     await handleRoll();
