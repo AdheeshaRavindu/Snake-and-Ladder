@@ -63,8 +63,10 @@ async function handleRoll() {
     window.AudioSys.roll();
 
     try {
-        // Wait for blockchain simulated transaction
-        const diceValue = await window.BlockChainAPI.rollDice();
+        // Execute on-chain roll transaction and fetch parsed on-chain result.
+        const rollResult = await window.BlockChainAPI.rollDice();
+        const diceValue = rollResult.diceValue;
+        const chainPosition = rollResult.newPosition;
 
         diceCube.classList.remove('spinning');
         diceCube.textContent = diceValue.toString();
@@ -72,41 +74,35 @@ async function handleRoll() {
         moveCount++;
         moveCountEl.innerText = moveCount.toString();
 
-        // Move Base
-        playerPosition += diceValue;
-        if (playerPosition > 100) playerPosition = 100;
+        const rawTarget = Math.min(playerPosition + diceValue, 100);
+        const movedBySnake = chainPosition < rawTarget;
+        const movedByLadder = chainPosition > rawTarget;
+
+        playerPosition = chainPosition;
 
         updateTokenPosition(playerPosition);
         messages.innerText = `Rolled a ${diceValue}! Moved to ${playerPosition}.`;
 
-        // Check Snake or Ladder after 500ms (to let slide finish)
-        await txDelay(600);
-
-        if (snakes[playerPosition]) {
+        if (movedBySnake) {
             messages.innerText = "Oh no! You hit a snake. Sliding down...";
             window.AudioSys.snake();
-            playerPosition = snakes[playerPosition];
-            updateTokenPosition(playerPosition);
             await txDelay(600);
-        } else if (ladders[playerPosition]) {
+        } else if (movedByLadder) {
             messages.innerText = "Nice! You found a ladder. Climbing up...";
             window.AudioSys.ladder();
-            playerPosition = ladders[playerPosition];
-            updateTokenPosition(playerPosition);
             await txDelay(600);
         }
 
         // Check Game End
-        if (playerPosition === 100) {
+        if (rollResult.won || playerPosition === 100) {
             gameActive = false;
             window.AudioSys.win();
             const finalScore = calculateScore(moveCount);
             currentScoreEl.innerText = finalScore.toString();
 
-            messages.innerText = "Congratulations! You reached 100. Saving score...";
-            await window.BlockChainAPI.submitScore(finalScore, moveCount);
+            messages.innerText = "Congratulations! You reached 100.";
 
-            // Trigger refresh local UI components
+            // Trigger refresh on-chain UI components
             if (window.refreshProfile) window.refreshProfile();
             if (window.refreshLeaderboard) window.refreshLeaderboard();
 

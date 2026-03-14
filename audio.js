@@ -11,9 +11,14 @@ const AudioSys = {
     snakeLocalAudio: null,
     ladderLocalAudio: null,
     bgmLocalAudio: null,
+    winIntroAudio: null,
+    winMainAudio: null,
+    winSequenceActive: false,
     snakeAudioPath: 'assets/audio/snake.mp3',
     ladderAudioPath: 'assets/audio/ladder.mp3',
     bgmAudioPath: 'assets/audio/BGM.mp3',
+    winIntroAudioPath: 'assets/audio/yeboi.mp3',
+    winMainAudioPath: 'assets/audio/win.mp3',
     snakeVideoId: '-BqVKDB9sDw',
     ladderVideoId: '08EtnvIy06Q',
 
@@ -44,6 +49,12 @@ const AudioSys = {
                 this.bgmLocalAudio.loop = true;
                 this.bgmLocalAudio.volume = 0.25;
             }
+        }
+        if (!this.winIntroAudio) {
+            this.winIntroAudio = this.createLocalAudio(this.winIntroAudioPath, 'winIntroAudio');
+        }
+        if (!this.winMainAudio) {
+            this.winMainAudio = this.createLocalAudio(this.winMainAudioPath, 'winMainAudio');
         }
     },
 
@@ -260,9 +271,49 @@ const AudioSys = {
     },
 
     win() {
-        // Triumphant chord
         if (!this.sfxEnabled) return;
         this.init();
+
+        const intro = this.winIntroAudio;
+        const main = this.winMainAudio;
+        if (intro && main) {
+            if (this.winSequenceActive) return;
+            this.winSequenceActive = true;
+
+            intro.currentTime = 0;
+            main.currentTime = 0;
+
+            intro.onended = null;
+            main.onended = null;
+
+            intro.onended = () => {
+                const secondPlay = main.play();
+                if (secondPlay && typeof secondPlay.catch === 'function') {
+                    secondPlay.catch(() => {
+                        this.playTone(440, 'square', 1.0, 0.1);
+                        this.playTone(554.37, 'square', 1.0, 0.1);
+                        this.playTone(659.25, 'square', 1.0, 0.1);
+                    });
+                }
+            };
+
+            main.onended = () => {
+                this.winSequenceActive = false;
+            };
+
+            const firstPlay = intro.play();
+            if (firstPlay && typeof firstPlay.catch === 'function') {
+                firstPlay.catch(() => {
+                    this.winSequenceActive = false;
+                    this.playTone(440, 'square', 1.0, 0.1);
+                    this.playTone(554.37, 'square', 1.0, 0.1);
+                    this.playTone(659.25, 'square', 1.0, 0.1);
+                });
+            }
+            return;
+        }
+
+        // Fallback if custom win files are missing.
         this.playTone(440, 'square', 1.0, 0.1); // A4
         this.playTone(554.37, 'square', 1.0, 0.1); // C#5
         this.playTone(659.25, 'square', 1.0, 0.1); // E5

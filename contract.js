@@ -1,31 +1,42 @@
-// Simulated Blockchain Contract Interface
-// Since no contract address/ABI was provided, we simulate the logic + state via localStorage.
-// To satisfy the 0.000001 ETH requirement, we trigger a real transaction to the player's own address.
+// Real blockchain contract interface.
+// Set your deployed contract address below (or via window.SNAKE_LADDER_CONTRACT_ADDRESS).
+const CONTRACT_ADDRESS = window.SNAKE_LADDER_CONTRACT_ADDRESS || "";
 
-const CONTRACT_STATE_KEY = "S_L_QUEST_STATE";
+const CONTRACT_ABI = [
+    "function ROLL_FEE() view returns (uint256)",
+    "function rollDice() payable returns (uint256)",
+    "function getPlayers() view returns (address[] memory)",
+    "function getPlayer(address user) view returns (uint256 position, uint256 moves, uint256 wins, uint256 gamesPlayed, uint256 bestScore, uint256 totalScore)",
+    "event DiceRolled(address indexed player, uint256 diceValue, uint256 newPosition)",
+    "event GameWon(address indexed player, uint256 score, uint256 moves)"
+];
 
-function getLocalState() {
-    const raw = localStorage.getItem(CONTRACT_STATE_KEY);
-    return raw ? JSON.parse(raw) : { players: {} };
-}
-
-function saveLocalState(state) {
-    localStorage.setItem(CONTRACT_STATE_KEY, JSON.stringify(state));
-}
-
-function initPlayer(address) {
-    const state = getLocalState();
-    if (!state.players[address]) {
-        state.players[address] = {
-            position: 1,
-            moves: 0,
-            wins: 0,
-            gamesPlayed: 0,
-            bestScore: 0
-        };
-        saveLocalState(state);
+function getReadContract() {
+    if (!CONTRACT_ADDRESS || !ethers.utils.isAddress(CONTRACT_ADDRESS)) {
+        throw new Error("Contract address is not configured. Set CONTRACT_ADDRESS in contract.js or window.SNAKE_LADDER_CONTRACT_ADDRESS.");
     }
-    return state.players[address];
+
+    if (!GLOBAL_STATE.provider) {
+        throw new Error("Wallet provider is not connected.");
+    }
+
+    return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, GLOBAL_STATE.provider);
+}
+
+function getWriteContract() {
+    if (!CONTRACT_ADDRESS || !ethers.utils.isAddress(CONTRACT_ADDRESS)) {
+        throw new Error("Contract address is not configured. Set CONTRACT_ADDRESS in contract.js or window.SNAKE_LADDER_CONTRACT_ADDRESS.");
+    }
+
+    if (!GLOBAL_STATE.signer) {
+        throw new Error("Wallet signer is not connected.");
+    }
+
+    return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, GLOBAL_STATE.signer);
+}
+
+function toNumber(v) {
+    return ethers.BigNumber.isBigNumber(v) ? v.toNumber() : Number(v);
 }
 
 async function txDelay(ms) {
@@ -35,8 +46,17 @@ async function txDelay(ms) {
 window.BlockChainAPI = {
     // getPlayer(address)
     getPlayer: async (address) => {
-        await txDelay(500); // Simulate network
-        return initPlayer(address);
+        const contract = getReadContract();
+        const data = await contract.getPlayer(address);
+
+        return {
+            position: toNumber(data.position),
+            moves: toNumber(data.moves),
+            wins: toNumber(data.wins),
+            gamesPlayed: toNumber(data.gamesPlayed),
+            bestScore: toNumber(data.bestScore),
+            totalScore: toNumber(data.totalScore)
+        };
     },
 
     // rollDice()
@@ -45,23 +65,46 @@ window.BlockChainAPI = {
             throw new Error("Wallet not connected");
         }
 
-        // Transaction includes value: 0.000001 ETH
-        // We trigger a transfer to the connected address to act as the "contract fee"
+        const contract = getWriteContract();
+        const fee = await contract.ROLL_FEE();
         gameMessages.innerText = "Awaiting transaction approval...";
 
         try {
-            const tx = await GLOBAL_STATE.signer.sendTransaction({
-                to: GLOBAL_STATE.walletAddress, // Self-transfer as placeholder
-                value: ethers.utils.parseEther("0.000001")
-            });
+            const tx = await contract.rollDice({ value: fee });
 
             gameMessages.innerText = "Transaction pending...";
-            await tx.wait(); // Wait for confirmation
+            const receipt = await tx.wait();
             gameMessages.innerText = "Transaction successful! Rolling dice...";
 
-            // Random number 1-6
-            const result = Math.floor(Math.random() * 6) + 1;
-            return result;
+            let diceValue = null;
+            let newPosition = null;
+
+            for (const log of receipt.logs) {
+                try {
+                    const parsed = contract.interface.parseLog(log);
+                    if (parsed && parsed.name === 'DiceRolled') {
+                        diceValue = toNumber(parsed.args.diceValue);
+                        newPosition = toNumber(parsed.args.newPosition);
+                    }
+                } catch (_) {
+                    // Ignore unrelated logs.
+                }
+            }
+
+            if (diceValue === null || newPosition === null) {
+                const player = await window.BlockChainAPI.getPlayer(GLOBAL_STATE.walletAddress);
+                return {
+                    diceValue: 1,
+                    newPosition: player.position,
+                    won: player.position === 100
+                };
+            }
+
+            return {
+                diceValue,
+                newPosition,
+                won: newPosition === 100
+            };
         } catch (err) {
             console.error(err);
             throw new Error("Transaction failed or rejected.");
@@ -69,28 +112,22 @@ window.BlockChainAPI = {
     },
 
     // submitScore(score, moves)
-    submitScore: async (score, moves) => {
-        gameMessages.innerText = "Submitting score to blockchain...";
-        await txDelay(1000);
-
-        const state = getLocalState();
-        const addr = GLOBAL_STATE.walletAddress;
-
-        const player = state.players[addr];
-        player.wins += 1;
-        player.gamesPlayed += 1;
-        player.moves = moves;
-
-        if (score > player.bestScore) {
-            player.bestScore = score;
-        }
-
-        saveLocalState(state);
-        gameMessages.innerText = "Score saved! Game Over.";
+    // Kept for backward compatibility; score updates are handled by rollDice() on-chain.
+    submitScore: async () => {
+        return;
     },
 
     // Helper for Leaderboard
     getAllPlayers: async () => {
-        return getLocalState().players;
+        const contract = getReadContract();
+        const addresses = await contract.getPlayers();
+        const players = {};
+
+        await Promise.all(addresses.map(async (addr) => {
+            const p = await window.BlockChainAPI.getPlayer(addr);
+            players[addr] = p;
+        }));
+
+        return players;
     }
 };

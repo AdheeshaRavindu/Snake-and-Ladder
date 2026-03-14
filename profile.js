@@ -6,6 +6,7 @@ const profileAddress = document.getElementById('profileAddress');
 const profileWins = document.getElementById('profileWins');
 const profileGames = document.getElementById('profileGames');
 const profileBestScore = document.getElementById('profileBestScore');
+const profileTotalScore = document.getElementById('profileTotalScore');
 
 async function refreshProfile() {
     if (!GLOBAL_STATE.connected) return;
@@ -17,6 +18,7 @@ async function refreshProfile() {
         profileWins.innerText = player.wins.toString();
         profileGames.innerText = player.gamesPlayed.toString();
         profileBestScore.innerText = player.bestScore.toString();
+        profileTotalScore.innerText = (player.totalScore || 0).toString();
 
         profileWarning.classList.remove('active');
         profileContent.classList.add('active');

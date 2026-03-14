@@ -10,8 +10,8 @@ async function refreshLeaderboard() {
             ...players[addr]
         }));
 
-        // Sort by bestScore (descending)
-        playerArray.sort((a, b) => b.bestScore - a.bestScore);
+        // Sort by totalScore (descending) so repeated wins keep increasing rank.
+        playerArray.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
 
         leaderboardBody.innerHTML = '';
 
@@ -29,7 +29,7 @@ async function refreshLeaderboard() {
             tr.innerHTML = `
                 <td>#${index + 1}</td>
                 <td>${shortAddr}</td>
-                <td>${p.bestScore}</td>
+                <td>${p.totalScore || 0}</td>
             `;
             leaderboardBody.appendChild(tr);
         });
