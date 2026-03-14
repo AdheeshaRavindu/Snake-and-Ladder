@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake & Ladder Quest Game</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="top-bar">
+            <div class="logo">S&L Quest</div>
+            <div class="stats-panel">
+                <div class="stat-box">Moves: <span id="moveCount">0</span></div>
+                <div class="stat-box">Score: <span id="currentScore">0</span></div>
+            </div>
+            <div class="audio-controls">
+                <button id="toggleBgmBtn" class="glow-btn small-btn" style="padding: 5px 10px; font-size: 14px;">🎵
+                    BGM</button>
+                <button id="toggleSfxBtn" class="glow-btn small-btn" style="padding: 5px 10px; font-size: 14px;">🔊
+                    SFX</button>
+            </div>
+            <button id="connectBtn" class="glow-btn">Connect Wallet</button>
+        </header>
+
+        <!-- Main Game Area -->
+        <main class="main-area">
+            <!-- Left Side - Views (Profile, Leaderboard) -->
+            <aside class="sidebar left-sidebar">
+                <div id="profileView" class="view-panel">
+                    <h2>Player Profile</h2>
+                    <div id="profileContent" class="hidden-until-connect">
+                        <p><strong>Address:</strong> <span class="truncate" id="profileAddress">--</span></p>
+                        <p><strong>Wins:</strong> <span id="profileWins">0</span></p>
+                        <p><strong>Games Played:</strong> <span id="profileGames">0</span></p>
+                        <p><strong>Best Score:</strong> <span id="profileBestScore">0</span></p>
+                    </div>
+                    <div id="profileWarning" class="warning-text">Connect wallet to view profile</div>
+                </div>
+            </aside>
+
+            <!-- Center - Board -->
+            <section class="game-board-wrapper">
+                <div id="gameBoard" class="board">
+                    <!-- Javascript will inject 100 squares here -->
+                    <div id="playerToken" class="player-token"></div>
+                </div>
+            </section>
+
+            <!-- Right Side - Leaderboard -->
+            <aside class="sidebar right-sidebar">
+                <div id="leaderboardView" class="view-panel">
+                    <h2>Leaderboard</h2>
+                    <div class="table-container">
+                        <table id="leaderboardTable">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Wallet</th>
+                                    <th>Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboardBody">
+                                <!-- JS inserts data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Bottom Controls -->
+        <footer class="bottom-area">
+            <div class="game-messages" id="gameMessages">Welcome to the Quest! Connect your wallet to start.</div>
+            <div class="dice-container">
+                <div id="diceCube" class="dice">1</div>
+                <button id="rollDiceBtn" class="glow-btn dice-btn" disabled>Roll Dice (0.000001 ETH)</button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="audio.js"></script>
+    <script src="wallet.js"></script>
+    <script src="contract.js"></script>
+    <script src="board.js"></script>
+    <script src="profile.js"></script>
+    <script src="leaderboard.js"></script>
+    <script src="game.js"></script>
+</body>
+
+</html>
