@@ -265,9 +265,13 @@ async function animateMove(move) {
     gameMessages.textContent = `${move.playerName} rolled a ${move.diceValue}.`;
     await delay(220);
 
-    await animatePlayerMovement(player, move.rawTarget, 240);
+    if (!move.blockedByExact) {
+        await animatePlayerMovement(player, move.rawTarget, 240);
+    }
 
-    if (move.specialType === 'ladder') {
+    if (move.blockedByExact) {
+        gameMessages.textContent = `${move.playerName} rolled ${move.diceValue} but needs an exact ${100 - move.fromPosition} to win.`;
+    } else if (move.specialType === 'ladder') {
         window.AudioSys.ladder();
         await delay(250);
         await window.animateSpecialMove(player.id, 'ladder', move.rawTarget, move.finalTarget, 850);
@@ -530,14 +534,18 @@ async function handleRoll() {
 
     const diceValue = rollDiceValue();
     const fromPosition = player.position || 1;
-    const rawTarget = Math.min(fromPosition + diceValue, 100);
-    const specialType = ladders[rawTarget] ? 'ladder' : snakes[rawTarget] ? 'snake' : null;
-    const finalTarget = specialType === 'ladder'
-        ? ladders[rawTarget]
-        : specialType === 'snake'
-            ? snakes[rawTarget]
-            : rawTarget;
-    const winnerId = finalTarget === 100 ? APP_STATE.clientId : null;
+    const overshoots = fromPosition + diceValue > 100;
+    const rawTarget = overshoots ? fromPosition : fromPosition + diceValue;
+    const blockedByExact = overshoots;
+    const specialType = !blockedByExact && ladders[rawTarget] ? 'ladder' : !blockedByExact && snakes[rawTarget] ? 'snake' : null;
+    const finalTarget = blockedByExact
+        ? fromPosition
+        : specialType === 'ladder'
+            ? ladders[rawTarget]
+            : specialType === 'snake'
+                ? snakes[rawTarget]
+                : rawTarget;
+    const winnerId = !blockedByExact && finalTarget === 100 ? APP_STATE.clientId : null;
     const nextPlayerId = winnerId ? null : players[(activeIndex + 1) % players.length].id;
     const moveSeq = (APP_STATE.roomData.latestMove?.seq || 0) + 1;
 
@@ -548,6 +556,7 @@ async function handleRoll() {
         diceValue,
         fromPosition,
         rawTarget,
+        blockedByExact,
         specialType,
         finalTarget,
         winnerId,
@@ -564,6 +573,8 @@ async function handleRoll() {
         latestMove: move,
         message: winnerId
             ? `${player.name} reached square 100 and wins the game.`
+            : blockedByExact
+                ? `${players[(activeIndex + 1) % players.length].name}, your turn. ${player.name} needed an exact ${100 - fromPosition}.`
             : `${players[(activeIndex + 1) % players.length].name}, your turn. Roll the dice.`
     };
 
