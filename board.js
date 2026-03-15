@@ -241,7 +241,10 @@ function getTokenOffset(playerId) {
         { x: -10, y: -10 },
         { x: 10, y: -10 },
         { x: -10, y: 10 },
-        { x: 10, y: 10 }
+        { x: 10, y: 10 },
+        { x: 0, y: -14 },
+        { x: -14, y: 0 },
+        { x: 14, y: 0 }
     ];
 
     return offsets[playerId] || offsets[0];

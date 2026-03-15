@@ -1,5 +1,5 @@
-const MAX_PLAYERS = 5;
-const PLAYER_COLORS = ['#ff8a5b', '#7ad8ff', '#ffd36b', '#7ef0a3', '#c596ff'];
+const MAX_PLAYERS = 8;
+const PLAYER_COLORS = ['#ff8a5b', '#7ad8ff', '#ffd36b', '#7ef0a3', '#c596ff', '#ff6fae', '#5ff0e6', '#f29b54'];
 const DICE_ROLL_EFFECTS = ['roll-effect-flip', 'roll-effect-shake', 'roll-effect-slam', 'roll-effect-wobble'];
 const PLACEHOLDER_PREFIX = 'PASTE_FIREBASE_';
 
