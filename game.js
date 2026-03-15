@@ -325,6 +325,11 @@ function handleRoomSnapshot(snapshot) {
     APP_STATE.roomData = data;
     roomCodeLabel.textContent = APP_STATE.roomCode;
 
+    if (data.latestMove && data.latestMove.seq > APP_STATE.latestAnimatedMoveSeq && !APP_STATE.animating) {
+        animateMove(data.latestMove);
+        return;
+    }
+
     if (data.message && !APP_STATE.animating) {
         gameMessages.textContent = data.message;
     }
@@ -338,11 +343,6 @@ function handleRoomSnapshot(snapshot) {
     if (data.status === 'playing' && previousStatus !== 'playing') {
         APP_STATE.announcedPlayers = {};
         APP_STATE.hasStartedAnnouncement = false;
-    }
-
-    if (data.latestMove && data.latestMove.seq > APP_STATE.latestAnimatedMoveSeq && !APP_STATE.animating) {
-        animateMove(data.latestMove);
-        return;
     }
 
     if (data.status === 'playing' && previousTurnPlayerId !== data.currentTurnPlayerId && !data.latestMove?.winnerId) {

@@ -1,9 +1,9 @@
 window.FIREBASE_CONFIG = window.FIREBASE_CONFIG || {
-    apiKey: "PASTE_FIREBASE_API_KEY",
-    authDomain: "PASTE_FIREBASE_AUTH_DOMAIN",
-    databaseURL: "PASTE_FIREBASE_DATABASE_URL",
-    projectId: "PASTE_FIREBASE_PROJECT_ID",
-    storageBucket: "PASTE_FIREBASE_STORAGE_BUCKET",
-    messagingSenderId: "PASTE_FIREBASE_MESSAGING_SENDER_ID",
-    appId: "PASTE_FIREBASE_APP_ID"
+    apiKey: "AIzaSyCVNI5IRkHSQfTd7j9RUoFpPqBHZSIj5uw",
+    authDomain: "snake-877c2.firebaseapp.com",
+    databaseURL: "https://snake-877c2-default-rtdb.firebaseio.com",
+    projectId: "snake-877c2",
+    storageBucket: "snake-877c2.firebasestorage.app",
+    messagingSenderId: "1073488232983",
+    appId: "1:1073488232983:web:3517488c224cedb5281252"
 };
