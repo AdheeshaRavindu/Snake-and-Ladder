@@ -12,6 +12,7 @@ A browser-based Snake and Ladder game with Firebase-powered online multiplayer, 
 - Up to 8 players in one match
 - Real-time synced turns across devices
 - Exact-roll rule for landing on 100
+- Placement-based finishing so everyone can keep playing for 1st, 2nd, 3rd, and beyond
 - Animated square-by-square movement
 - Snake-slide and ladder-climb path animation
 - Voice turn announcements with toggle
@@ -55,6 +56,12 @@ If you already have Firebase configured:
 3. Open the game on another device
 4. Enter a name and join with the room code
 5. Start the match
+
+## Match Rules
+
+- Players must land on square 100 with the exact roll
+- After the first player finishes, the match continues so the remaining players can fight for the next placements
+- Only the 1st-place finish triggers the win sound
 
 ## Audio
 

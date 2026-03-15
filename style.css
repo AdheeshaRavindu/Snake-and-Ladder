@@ -21,7 +21,8 @@ body {
     min-height: 100vh;
     font-family: 'Outfit', sans-serif;
     color: var(--text-color);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     background:
         radial-gradient(circle at top left, rgba(121, 210, 255, 0.18), transparent 30%),
         radial-gradient(circle at 82% 14%, rgba(255, 190, 99, 0.16), transparent 22%),
@@ -32,7 +33,7 @@ body {
     position: relative;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    min-height: 100vh;
     max-width: 1440px;
     margin: 0 auto;
     padding: clamp(10px, 1.6vw, 18px);
@@ -278,6 +279,12 @@ select.input-control option {
     display: block;
     margin-top: 6px;
     font-size: 0.98rem;
+}
+
+.placement-card {
+    margin-top: 10px;
+    border-color: rgba(255, 190, 99, 0.2);
+    background: linear-gradient(180deg, rgba(255, 190, 99, 0.08), rgba(255, 255, 255, 0.04));
 }
 
 .player-status-list {

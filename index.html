@@ -16,7 +16,6 @@
 
         <header class="top-bar">
             <div class="brand-block">
-                <span class="eyebrow">Firebase Multiplayer</span>
                 <div class="logo">Snake & Ladder</div>
             </div>
 
@@ -43,7 +42,7 @@
                     </div>
 
                     <div class="room-actions">
-                        <button id="createRoomBtn" class="glow-btn" type="button">Create Room</button>
+                        <button id="createRoomBtn" class="glow-btn" type="button">Host Match</button>
                     </div>
 
                     <div class="join-row">
@@ -101,14 +100,14 @@
                         <strong id="currentTurnLabel">Waiting for room</strong>
                     </div>
 
-                    <div class="status-card">
-                        <span class="mini-label">Winner</span>
-                        <strong id="winnerLabel">No winner yet</strong>
-                    </div>
-
                     <div class="status-list-wrap">
                         <span class="mini-label">Players</span>
                         <div id="playerStatusList" class="player-status-list"></div>
+                    </div>
+
+                    <div class="status-card placement-card">
+                        <span class="mini-label">Placements</span>
+                        <strong id="winnerLabel">No placements yet</strong>
                     </div>
 
                     <div class="side-dice-card">

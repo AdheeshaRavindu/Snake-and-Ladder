@@ -119,6 +119,28 @@ function getOrderedPlayers(playersMap) {
         .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
 }
 
+function getWinnerIds() {
+    return Array.isArray(APP_STATE.roomData?.winnerIds) ? APP_STATE.roomData.winnerIds : [];
+}
+
+function getPlacementLabel(place) {
+    if (place === 1) return '1st';
+    if (place === 2) return '2nd';
+    if (place === 3) return '3rd';
+    return `${place}th`;
+}
+
+function getNextActivePlayerId(players, currentIndex, winnerIds) {
+    for (let step = 1; step <= players.length; step++) {
+        const nextIndex = (currentIndex + step) % players.length;
+        if (!winnerIds.includes(players[nextIndex].id)) {
+            return players[nextIndex].id;
+        }
+    }
+
+    return null;
+}
+
 function updateBoardTokens() {
     if (window.renderPlayerTokens) {
         window.renderPlayerTokens(APP_STATE.displayedPlayers);
@@ -127,19 +149,21 @@ function updateBoardTokens() {
 
 function updateStatusPanel() {
     playerStatusListEl.innerHTML = '';
+    const winnerIds = getWinnerIds();
 
     APP_STATE.displayedPlayers.forEach((player) => {
         const isActive = APP_STATE.roomData
             && APP_STATE.roomData.currentTurnPlayerId === player.id
             && APP_STATE.roomData.status === 'playing'
-            && !APP_STATE.roomData.winnerId;
+            && !winnerIds.includes(player.id);
+        const placement = winnerIds.indexOf(player.id) + 1;
 
         const item = document.createElement('div');
         item.className = `status-player${isActive ? ' active' : ''}`;
         item.innerHTML = `
             <span class="player-chip">
                 <i class="player-dot" style="background:${player.color}"></i>
-                ${player.name}${player.id === APP_STATE.clientId ? ' (You)' : ''}
+                ${player.name}${player.id === APP_STATE.clientId ? ' (You)' : ''}${placement ? ` - ${getPlacementLabel(placement)}` : ''}
             </span>
             <span class="status-square">Square ${player.position || 1}</span>
         `;
@@ -148,16 +172,25 @@ function updateStatusPanel() {
 
     if (!APP_STATE.roomData) {
         currentTurnLabelEl.textContent = 'Waiting for room';
-        winnerLabelEl.textContent = 'No winner yet';
+        winnerLabelEl.textContent = 'No placements yet';
         return;
     }
 
     const players = getOrderedPlayers(APP_STATE.roomData.players);
     const currentPlayer = players.find((player) => player.id === APP_STATE.roomData.currentTurnPlayerId);
-    const winner = players.find((player) => player.id === APP_STATE.roomData.winnerId);
+    const winners = winnerIds
+        .map((winnerId, index) => {
+            const player = players.find((entry) => entry.id === winnerId);
+            return player ? `${index + 1}. ${player.name}` : null;
+        })
+        .filter(Boolean);
 
-    currentTurnLabelEl.textContent = currentPlayer ? currentPlayer.name : 'Waiting for players';
-    winnerLabelEl.textContent = winner ? `${winner.name} wins` : 'No winner yet';
+    currentTurnLabelEl.textContent = APP_STATE.roomData.status === 'finished'
+        ? 'Match complete'
+        : currentPlayer
+            ? currentPlayer.name
+            : 'Waiting for players';
+    winnerLabelEl.textContent = winners.length ? winners.join(' | ') : 'No placements yet';
 }
 
 function setButtonStates() {
@@ -168,7 +201,7 @@ function setButtonStates() {
     const isMyTurn = APP_STATE.roomData?.currentTurnPlayerId === APP_STATE.clientId;
     const canRoll = inRoom
         && APP_STATE.roomData?.status === 'playing'
-        && !APP_STATE.roomData?.winnerId
+        && !getWinnerIds().includes(APP_STATE.clientId)
         && isMyTurn
         && !APP_STATE.animating;
 
@@ -290,7 +323,11 @@ async function animateMove(move) {
     updateBoardTokens();
     await delay(120);
 
-    if (move.winnerId) {
+    if (move.placement) {
+        gameMessages.textContent = `${move.playerName} finished in ${getPlacementLabel(move.placement)} place.`;
+    }
+
+    if (move.placement === 1) {
         window.AudioSys.win();
     }
 
@@ -298,7 +335,13 @@ async function animateMove(move) {
     APP_STATE.animating = false;
     syncDisplayedPlayersFromRoom();
 
-    if (!move.winnerId && APP_STATE.roomData?.currentTurnPlayerId) {
+    if (!move.placement && APP_STATE.roomData?.currentTurnPlayerId) {
+        const nextPlayer = getOrderedPlayers(APP_STATE.roomData.players)
+            .find((roomPlayer) => roomPlayer.id === APP_STATE.roomData.currentTurnPlayerId);
+        if (nextPlayer) {
+            announcePlayerTurn(nextPlayer.name);
+        }
+    } else if (move.placement && APP_STATE.roomData?.currentTurnPlayerId) {
         const nextPlayer = getOrderedPlayers(APP_STATE.roomData.players)
             .find((roomPlayer) => roomPlayer.id === APP_STATE.roomData.currentTurnPlayerId);
         if (nextPlayer) {
@@ -349,7 +392,11 @@ function handleRoomSnapshot(snapshot) {
         APP_STATE.hasStartedAnnouncement = false;
     }
 
-    if (data.status === 'playing' && previousTurnPlayerId !== data.currentTurnPlayerId && !data.latestMove?.winnerId) {
+    if (
+        data.status === 'playing'
+        && previousTurnPlayerId !== data.currentTurnPlayerId
+        && (!data.latestMove || data.latestMove.seq <= APP_STATE.latestAnimatedMoveSeq)
+    ) {
         const currentPlayer = getOrderedPlayers(data.players).find((player) => player.id === data.currentTurnPlayerId);
         if (currentPlayer) {
             announcePlayerTurn(currentPlayer.name);
@@ -391,7 +438,7 @@ async function createRoom() {
         hostId: APP_STATE.clientId,
         status: 'lobby',
         currentTurnPlayerId: APP_STATE.clientId,
-        winnerId: null,
+        winnerIds: [],
         lastDiceValue: 1,
         latestMove: null,
         message: `${playerName} created room ${roomCode}.`,
@@ -468,7 +515,7 @@ async function startOnlineGame() {
     const updates = {
         status: 'playing',
         currentTurnPlayerId: players[0].id,
-        winnerId: null,
+        winnerIds: [],
         lastDiceValue: 1,
         latestMove: null,
         message: `${players[0].name} starts. Roll the dice.`
@@ -525,7 +572,7 @@ async function handleRoll() {
     if (!APP_STATE.roomRef || !APP_STATE.roomData || APP_STATE.animating) return;
     if (APP_STATE.roomData.status !== 'playing') return;
     if (APP_STATE.roomData.currentTurnPlayerId !== APP_STATE.clientId) return;
-    if (APP_STATE.roomData.winnerId) return;
+    if (getWinnerIds().includes(APP_STATE.clientId)) return;
 
     const players = getOrderedPlayers(APP_STATE.roomData.players);
     const activeIndex = players.findIndex((player) => player.id === APP_STATE.clientId);
@@ -534,6 +581,7 @@ async function handleRoll() {
 
     const diceValue = rollDiceValue();
     const fromPosition = player.position || 1;
+    const winnerIds = getWinnerIds();
     const overshoots = fromPosition + diceValue > 100;
     const rawTarget = overshoots ? fromPosition : fromPosition + diceValue;
     const blockedByExact = overshoots;
@@ -545,8 +593,11 @@ async function handleRoll() {
             : specialType === 'snake'
                 ? snakes[rawTarget]
                 : rawTarget;
-    const winnerId = !blockedByExact && finalTarget === 100 ? APP_STATE.clientId : null;
-    const nextPlayerId = winnerId ? null : players[(activeIndex + 1) % players.length].id;
+    const didFinish = !blockedByExact && finalTarget === 100 && !winnerIds.includes(APP_STATE.clientId);
+    const nextWinnerIds = didFinish ? [...winnerIds, APP_STATE.clientId] : winnerIds;
+    const placement = didFinish ? nextWinnerIds.length : null;
+    const everyoneFinished = nextWinnerIds.length === players.length;
+    const nextPlayerId = everyoneFinished ? null : getNextActivePlayerId(players, activeIndex, nextWinnerIds);
     const moveSeq = (APP_STATE.roomData.latestMove?.seq || 0) + 1;
 
     const move = {
@@ -559,7 +610,7 @@ async function handleRoll() {
         blockedByExact,
         specialType,
         finalTarget,
-        winnerId,
+        placement,
         nextPlayerId
     };
 
@@ -567,15 +618,17 @@ async function handleRoll() {
         [`players/${APP_STATE.clientId}/position`]: finalTarget,
         [`players/${APP_STATE.clientId}/turns`]: (player.turns || 0) + 1,
         currentTurnPlayerId: nextPlayerId,
-        winnerId,
-        status: winnerId ? 'finished' : 'playing',
+        winnerIds: nextWinnerIds,
+        status: everyoneFinished ? 'finished' : 'playing',
         lastDiceValue: diceValue,
         latestMove: move,
-        message: winnerId
-            ? `${player.name} reached square 100 and wins the game.`
+        message: didFinish
+            ? everyoneFinished
+                ? `${player.name} finished in ${getPlacementLabel(placement)} place. All players finished.`
+                : `${player.name} finished in ${getPlacementLabel(placement)} place. ${players.find((entry) => entry.id === nextPlayerId)?.name}, your turn.`
             : blockedByExact
-                ? `${players[(activeIndex + 1) % players.length].name}, your turn. ${player.name} needed an exact ${100 - fromPosition}.`
-            : `${players[(activeIndex + 1) % players.length].name}, your turn. Roll the dice.`
+                ? `${players.find((entry) => entry.id === nextPlayerId)?.name}, your turn. ${player.name} needed an exact ${100 - fromPosition}.`
+                : `${players.find((entry) => entry.id === nextPlayerId)?.name}, your turn. Roll the dice.`
     };
 
     await APP_STATE.roomRef.update(updates);
