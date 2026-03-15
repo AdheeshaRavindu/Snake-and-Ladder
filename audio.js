@@ -246,6 +246,19 @@ const AudioSys = {
         setTimeout(() => this.playTone(500, 'square', 0.15, 0.05), 200);
     },
 
+    hop() {
+        // Short bouncy hop sound for square-to-square movement.
+        this.playTone(520, 'triangle', 0.08, 0.03, 660);
+        setTimeout(() => this.playTone(380, 'sine', 0.06, 0.02, 300), 35);
+    },
+
+    announcerCue() {
+        // Short boxing-style intro cue before player announcements.
+        this.playTone(660, 'triangle', 0.12, 0.035, 540);
+        setTimeout(() => this.playTone(880, 'triangle', 0.12, 0.03, 700), 90);
+        setTimeout(() => this.playTone(440, 'sine', 0.18, 0.025, 320), 200);
+    },
+
     ladder() {
         // Prefer local clip, then YouTube clip, then arpeggio fallback.
         this.init();

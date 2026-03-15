@@ -4,94 +4,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake & Ladder Quest Game</title>
+    <title>Snake & Ladder</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 
 <body>
     <div class="app-container">
-        <!-- Top Navigation Bar -->
+        <div class="background-glow glow-left"></div>
+        <div class="background-glow glow-right"></div>
+
         <header class="top-bar">
-            <div class="logo">S&L Quest</div>
-            <div class="stats-panel">
-                <div class="stat-box">Moves: <span id="moveCount">0</span></div>
-                <div class="stat-box">Score: <span id="currentScore">0</span></div>
+            <div class="brand-block">
+                <span class="eyebrow">Local Party Mode</span>
+                <div class="logo">Snake & Ladder</div>
             </div>
-            <div class="audio-controls">
-                <button id="toggleBgmBtn" class="glow-btn small-btn" style="padding: 5px 10px; font-size: 14px;">🎵
-                    BGM</button>
-                <button id="toggleSfxBtn" class="glow-btn small-btn" style="padding: 5px 10px; font-size: 14px;">🔊
-                    SFX</button>
+
+            <div class="top-actions">
+                <button id="toggleVoiceBtn" class="glow-btn subtle-btn" type="button">Voice</button>
+                <button id="toggleBgmBtn" class="glow-btn subtle-btn" type="button">Music</button>
+                <button id="toggleSfxBtn" class="glow-btn subtle-btn" type="button">SFX</button>
             </div>
-            <button id="connectBtn" class="glow-btn">Connect Wallet</button>
         </header>
 
-        <!-- Main Game Area -->
         <main class="main-area">
-            <!-- Left Side - Views (Profile, Leaderboard) -->
-            <aside class="sidebar left-sidebar">
-                <div id="profileView" class="view-panel">
-                    <h2>Player Profile</h2>
-                    <div id="profileContent" class="hidden-until-connect">
-                        <p><strong>Address:</strong> <span class="truncate" id="profileAddress">--</span></p>
-                        <p><strong>Wins:</strong> <span id="profileWins">0</span></p>
-                        <p><strong>Games Played:</strong> <span id="profileGames">0</span></p>
-                        <p><strong>Best Score:</strong> <span id="profileBestScore">0</span></p>
-                        <p><strong>Total Score:</strong> <span id="profileTotalScore">0</span></p>
+            <aside class="sidebar">
+                <div class="view-panel">
+                    <div class="panel-header">
+                        <div>
+                            <span class="panel-kicker">Setup</span>
+                            <h2>Players</h2>
+                        </div>
                     </div>
-                    <div id="profileWarning" class="warning-text">Connect wallet to view profile</div>
+
+                    <div class="setup-group">
+                        <label class="input-label" for="playerCount">Number of players</label>
+                        <select id="playerCount" class="input-control">
+                            <option value="1">1 Player</option>
+                            <option value="2">2 Players</option>
+                            <option value="3">3 Players</option>
+                            <option value="4">4 Players</option>
+                            <option value="5">5 Players</option>
+                        </select>
+                    </div>
+
+                    <div id="playerSetupList" class="player-setup-list"></div>
+
+                    <div class="setup-actions">
+                        <button id="startGameBtn" class="glow-btn" type="button">Start Game</button>
+                        <button id="resetGameBtn" class="glow-btn secondary-btn" type="button">Reset</button>
+                    </div>
+
+                    <div class="side-message-card">
+                        <span class="panel-kicker">Game Feed</span>
+                        <div class="game-messages" id="gameMessages">Choose your players and press Start Game.</div>
+                    </div>
                 </div>
             </aside>
 
-            <!-- Center - Board -->
-            <section class="game-board-wrapper">
-                <div id="gameBoard" class="board">
-                    <!-- Javascript will inject 100 squares here -->
-                    <div id="playerToken" class="player-token"></div>
+            <section class="board-column">
+                <div class="board-stage">
+                    <div class="board-stage-header">
+                        <div>
+                            <span class="panel-kicker">Board</span>
+                            <h2>Board Arena</h2>
+                        </div>
+                        <div class="board-legend">
+                            <span><i class="legend-dot ladder-dot"></i>Ladders</span>
+                            <span><i class="legend-dot snake-dot"></i>Snakes</span>
+                        </div>
+                    </div>
+
+                    <div class="game-board-wrapper">
+                        <div id="gameBoard" class="board"></div>
+                    </div>
                 </div>
             </section>
 
-            <!-- Right Side - Leaderboard -->
-            <aside class="sidebar right-sidebar">
-                <div id="leaderboardView" class="view-panel">
-                    <h2>Leaderboard</h2>
-                    <div class="table-container">
-                        <table id="leaderboardTable">
-                            <thead>
-                                <tr>
-                                    <th>Rank</th>
-                                    <th>Wallet</th>
-                                    <th>Total Score</th>
-                                </tr>
-                            </thead>
-                            <tbody id="leaderboardBody">
-                                <!-- JS inserts data -->
-                            </tbody>
-                        </table>
+            <aside class="sidebar">
+                <div class="view-panel">
+                    <div class="panel-header">
+                        <div>
+                            <span class="panel-kicker">Match</span>
+                            <h2>Status</h2>
+                        </div>
+                    </div>
+
+                    <div class="status-card">
+                        <span class="mini-label">Current Turn</span>
+                        <strong id="currentTurnLabel">Set up players to begin</strong>
+                    </div>
+
+                    <div class="status-card">
+                        <span class="mini-label">Winner</span>
+                        <strong id="winnerLabel">No winner yet</strong>
+                    </div>
+
+                    <div class="status-list-wrap">
+                        <span class="mini-label">Player Positions</span>
+                        <div id="playerStatusList" class="player-status-list"></div>
+                    </div>
+
+                    <div class="side-dice-card">
+                        <span class="panel-kicker">Current Roll</span>
+                        <div class="dice-container">
+                            <div class="dice-meta">
+                                <div id="diceCube" class="dice" aria-label="Dice showing 1"></div>
+                                <span class="mini-label">Current roll</span>
+                            </div>
+                            <button id="rollDiceBtn" class="glow-btn dice-btn" type="button" disabled>Roll Dice</button>
+                        </div>
                     </div>
                 </div>
             </aside>
         </main>
-
-        <!-- Bottom Controls -->
-        <footer class="bottom-area">
-            <div class="game-messages" id="gameMessages">Welcome to the Quest! Connect your wallet to start.</div>
-            <div class="dice-container">
-                <div id="diceCube" class="dice">1</div>
-                <button id="rollDiceBtn" class="glow-btn dice-btn" disabled>Roll Dice (0.000001 ETH)</button>
-            </div>
-        </footer>
     </div>
 
-    <!-- Scripts -->
     <script src="audio.js"></script>
-    <script src="wallet.js"></script>
-    <script src="contract.js"></script>
     <script src="board.js"></script>
-    <script src="profile.js"></script>
-    <script src="leaderboard.js"></script>
     <script src="game.js"></script>
 </body>
 

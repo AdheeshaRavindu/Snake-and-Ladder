@@ -1,15 +1,25 @@
 const boardContainer = document.getElementById('gameBoard');
-const START_X = 5;
-const START_Y = 5;
 
-// Board dimensions: 10x10, so 100 squares total
-// Bottom-left starts at 1, bottom-right 10.
-// Then going up like a snake: 11 is right to left
-// Row 1 (y=9, Bottom): 1 -> 10  (left to right)
-// Row 2 (y=8): 11 -> 20 (right to left)
+const snakes = {
+    27: 10,
+    47: 26,
+    61: 40,
+    74: 53,
+    88: 67,
+    97: 79
+};
+
+const ladders = {
+    3: 16,
+    8: 30,
+    21: 42,
+    28: 55,
+    36: 57,
+    51: 72
+};
 
 function generateBoard() {
-    boardContainer.innerHTML = '<div id="playerToken" class="player-token"></div>';
+    boardContainer.innerHTML = '';
 
     for (let row = 0; row < 10; row++) {
         for (let col = 0; col < 10; col++) {
@@ -20,88 +30,290 @@ function generateBoard() {
                 currentSquare = 100 - (row * 10) - (9 - col);
             }
 
-            const div = document.createElement("div");
-            div.classList.add("square");
-            div.id = `square-${currentSquare}`;
-            div.textContent = currentSquare;
-
-            boardContainer.appendChild(div);
+            const square = document.createElement('div');
+            square.className = 'square';
+            square.id = `square-${currentSquare}`;
+            square.textContent = currentSquare;
+            boardContainer.appendChild(square);
         }
     }
+
+    const tokenLayer = document.createElement('div');
+    tokenLayer.id = 'tokenLayer';
+    tokenLayer.className = 'token-layer';
+    boardContainer.appendChild(tokenLayer);
 }
 
-// Logic Mapping for Snakes & Ladders
-const snakes = {
-    12: 2,
-    13: 3,
-    14: 4,
-    99: 54,
-    87: 24,
-    62: 18,
-    48: 26
-};
-
-const ladders = {
-    16: 36,
-    17: 37,
-    8: 98,
-    7: 98,
-    6: 98,
-    5: 98,
-    4: 98,
-    3: 22,
-    15: 44,
-    40: 65,
-    71: 92
-};
-
-// Calculate X,Y (in pixels) for smooth animation over grid
-// Width of board: 500px -> each block 50px
-const BLOCK_SIZE = 50;
+function getBoardMetrics() {
+    const boardSize = boardContainer.clientWidth || 500;
+    return {
+        boardSize,
+        blockSize: boardSize / 10
+    };
+}
 
 function getPositionCoords(square) {
-    if (square < 1) square = 1;
-    if (square > 100) square = 100;
-
-    const zeroIndexed = square - 1;
+    const boundedSquare = Math.min(100, Math.max(1, square));
+    const { blockSize } = getBoardMetrics();
+    const zeroIndexed = boundedSquare - 1;
     let row = Math.floor(zeroIndexed / 10);
     let col = zeroIndexed % 10;
 
-    // Reverse col direction for odd rows
     if (row % 2 !== 0) {
         col = 9 - col;
     }
 
-    // Grid coordinates: origin bottom-left
-    // CSS Top translates to (9 - row)
-    const x = col * BLOCK_SIZE + (BLOCK_SIZE / 2);
-    const y = (9 - row) * BLOCK_SIZE + (BLOCK_SIZE / 2);
+    return {
+        x: col * blockSize + (blockSize / 2),
+        y: (9 - row) * blockSize + (blockSize / 2)
+    };
+}
+
+function getSnakeCurvePoints(startSquare, endSquare) {
+    const start = getPositionCoords(startSquare);
+    const end = getPositionCoords(endSquare);
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+
+    return {
+        start,
+        c1: {
+            x: start.x + dx * 0.2 + (dy > 0 ? -48 : 48),
+            y: start.y + dy * 0.15 - 36
+        },
+        c2: {
+            x: start.x + dx * 0.7 + (dy > 0 ? 56 : -56),
+            y: start.y + dy * 0.85 + 38
+        },
+        end
+    };
+}
+
+function getBezierPoint(t, p0, p1, p2, p3) {
+    const oneMinusT = 1 - t;
+    const x = (oneMinusT ** 3) * p0.x
+        + 3 * (oneMinusT ** 2) * t * p1.x
+        + 3 * oneMinusT * (t ** 2) * p2.x
+        + (t ** 3) * p3.x;
+    const y = (oneMinusT ** 3) * p0.y
+        + 3 * (oneMinusT ** 2) * t * p1.y
+        + 3 * oneMinusT * (t ** 2) * p2.y
+        + (t ** 3) * p3.y;
 
     return { x, y };
 }
 
-// Draw visual hints (SVG connecting lines)
+function createLadderSvg(startSquare, endSquare) {
+    const start = getPositionCoords(startSquare);
+    const end = getPositionCoords(endSquare);
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.hypot(dx, dy);
+
+    if (length === 0) return '';
+
+    const unitX = dx / length;
+    const unitY = dy / length;
+    const perpX = -unitY;
+    const perpY = unitX;
+    const railOffset = 9;
+    const rungCount = Math.max(4, Math.floor(length / 38));
+
+    const leftStart = { x: start.x + perpX * railOffset, y: start.y + perpY * railOffset };
+    const leftEnd = { x: end.x + perpX * railOffset, y: end.y + perpY * railOffset };
+    const rightStart = { x: start.x - perpX * railOffset, y: start.y - perpY * railOffset };
+    const rightEnd = { x: end.x - perpX * railOffset, y: end.y - perpY * railOffset };
+
+    let rungs = '';
+    for (let i = 1; i < rungCount; i++) {
+        const t = i / rungCount;
+        const centerX = start.x + dx * t;
+        const centerY = start.y + dy * t;
+        const rungHalf = 10;
+        rungs += `
+            <line x1="${centerX + perpX * rungHalf}" y1="${centerY + perpY * rungHalf}"
+                  x2="${centerX - perpX * rungHalf}" y2="${centerY - perpY * rungHalf}"
+                  stroke="#f7e0a3" stroke-width="4" stroke-linecap="round" opacity="0.95" />`;
+    }
+
+    return `
+        <g filter="url(#softShadow)">
+            <line x1="${leftStart.x}" y1="${leftStart.y}" x2="${leftEnd.x}" y2="${leftEnd.y}"
+                  stroke="url(#ladderRail)" stroke-width="6" stroke-linecap="round" />
+            <line x1="${rightStart.x}" y1="${rightStart.y}" x2="${rightEnd.x}" y2="${rightEnd.y}"
+                  stroke="url(#ladderRail)" stroke-width="6" stroke-linecap="round" />
+            ${rungs}
+        </g>`;
+}
+
+function createSnakeSvg(startSquare, endSquare) {
+    const { start, c1, c2, end } = getSnakeCurvePoints(startSquare, endSquare);
+
+    const headAngle = Math.atan2(c1.y - start.y, c1.x - start.x) * (180 / Math.PI);
+    const bodyPath = `M ${start.x} ${start.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${end.x} ${end.y}`;
+
+    return `
+        <g class="snake-group" data-snake-id="${startSquare}-${endSquare}" filter="url(#softShadow)">
+            <path class="snake-shadow" d="${bodyPath}" fill="none" stroke="#1a3a24" stroke-width="18" stroke-linecap="round" />
+            <path class="snake-main" d="${bodyPath}" fill="none" stroke="url(#snakeBody)" stroke-width="14" stroke-linecap="round" />
+            <path class="snake-marks" d="${bodyPath}" fill="none" stroke="#b8f5a2" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="1 15" opacity="0.8" />
+            <g class="snake-head" transform="translate(${start.x}, ${start.y}) rotate(${headAngle})">
+                <ellipse cx="0" cy="0" rx="13" ry="10" fill="#70d36f" />
+                <ellipse cx="8" cy="0" rx="7" ry="5.5" fill="#9ef28f" />
+                <circle cx="4" cy="-3" r="1.8" fill="#0d1117" />
+                <path d="M 13 0 Q 20 2 24 0 Q 20 -2 13 0" fill="#ff7b7b" />
+            </g>
+            <circle cx="${end.x}" cy="${end.y}" r="5" fill="#6ecf6f" opacity="0.9" />
+        </g>`;
+}
+
 function drawConnections() {
-    let svgStr = `<svg width="100%" height="100%" style="position:absolute; top:0; left:0; pointer-events:none; z-index:5;">`;
+    const { boardSize } = getBoardMetrics();
+    const existingOverlay = boardContainer.querySelector('.board-overlay');
+    if (existingOverlay) existingOverlay.remove();
 
-    // Draw snakes and ladders connecting lines
-    for (let p in snakes) {
-        const p1 = getPositionCoords(parseInt(p));
-        const p2 = getPositionCoords(snakes[p]);
-        svgStr += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#f85149" stroke-width="3" stroke-dasharray="5,5" opacity="0.6"/>`;
+    const snakeMarkup = Object.keys(snakes)
+        .map((fromSquare) => createSnakeSvg(Number(fromSquare), snakes[fromSquare]))
+        .join('');
+
+    const ladderMarkup = Object.keys(ladders)
+        .map((fromSquare) => createLadderSvg(Number(fromSquare), ladders[fromSquare]))
+        .join('');
+
+    boardContainer.insertAdjacentHTML('beforeend', `
+        <svg class="board-overlay" width="100%" height="100%" viewBox="0 0 ${boardSize} ${boardSize}"
+             style="position:absolute; top:0; left:0; pointer-events:none; z-index:5;">
+            <defs>
+                <linearGradient id="ladderRail" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#fff2c4" />
+                    <stop offset="100%" stop-color="#d79a35" />
+                </linearGradient>
+                <linearGradient id="snakeBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#9cf17d" />
+                    <stop offset="55%" stop-color="#43aa57" />
+                    <stop offset="100%" stop-color="#265e36" />
+                </linearGradient>
+                <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="rgba(0,0,0,0.35)" />
+                </filter>
+            </defs>
+            ${ladderMarkup}
+            ${snakeMarkup}
+        </svg>
+    `);
+}
+
+function renderPlayerTokens(players) {
+    const tokenLayer = document.getElementById('tokenLayer');
+    if (!tokenLayer) return;
+
+    tokenLayer.innerHTML = '';
+    const offsets = [
+        { x: 0, y: 0 },
+        { x: -10, y: -10 },
+        { x: 10, y: -10 },
+        { x: -10, y: 10 },
+        { x: 10, y: 10 }
+    ];
+
+    players.forEach((player, index) => {
+        const coords = getPositionCoords(player.position || 1);
+        const offset = offsets[index] || offsets[0];
+        const token = document.createElement('div');
+
+        token.className = 'player-token';
+        token.dataset.playerId = String(player.id);
+        token.style.left = `${coords.x + offset.x}px`;
+        token.style.top = `${coords.y + offset.y}px`;
+        token.style.opacity = '1';
+        token.style.background = `radial-gradient(circle at 30% 30%, #ffffff 0%, ${player.color} 38%, #10243d 100%)`;
+        token.style.boxShadow = `0 0 16px ${player.color}`;
+        token.title = player.name;
+        token.innerHTML = `<span class="token-label">${index + 1}</span>`;
+
+        tokenLayer.appendChild(token);
+    });
+}
+
+function getTokenOffset(playerId) {
+    const offsets = [
+        { x: 0, y: 0 },
+        { x: -10, y: -10 },
+        { x: 10, y: -10 },
+        { x: -10, y: 10 },
+        { x: 10, y: 10 }
+    ];
+
+    return offsets[playerId] || offsets[0];
+}
+
+function animateSpecialMove(playerId, moveType, fromSquare, toSquare, duration = 900) {
+    const token = document.querySelector(`.player-token[data-player-id="${playerId}"]`);
+    if (!token) return Promise.resolve();
+
+    const offset = getTokenOffset(playerId);
+    const startTime = performance.now();
+    const snakeGroup = moveType === 'snake'
+        ? document.querySelector(`.snake-group[data-snake-id="${fromSquare}-${toSquare}"]`)
+        : null;
+
+    if (snakeGroup) {
+        snakeGroup.classList.add('snake-active');
     }
 
-    for (let p in ladders) {
-        const p1 = getPositionCoords(parseInt(p));
-        const p2 = getPositionCoords(ladders[p]);
-        svgStr += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#2ea043" stroke-width="4" opacity="0.8"/>`;
+    return new Promise((resolve) => {
+        function step(now) {
+            const progress = Math.min((now - startTime) / duration, 1);
+            let point;
+
+            if (moveType === 'snake') {
+                const curve = getSnakeCurvePoints(fromSquare, toSquare);
+                point = getBezierPoint(progress, curve.start, curve.c1, curve.c2, curve.end);
+            } else {
+                const start = getPositionCoords(fromSquare);
+                const end = getPositionCoords(toSquare);
+                point = {
+                    x: start.x + ((end.x - start.x) * progress),
+                    y: start.y + ((end.y - start.y) * progress)
+                };
+            }
+
+            token.style.left = `${point.x + offset.x}px`;
+            token.style.top = `${point.y + offset.y}px`;
+
+            if (progress < 1) {
+                requestAnimationFrame(step);
+            } else {
+                if (snakeGroup) {
+                    snakeGroup.classList.remove('snake-active');
+                }
+                resolve();
+            }
+        }
+
+        requestAnimationFrame(step);
+    });
+}
+
+let resizeFrame = null;
+
+function scheduleBoardRedraw() {
+    if (resizeFrame !== null) {
+        cancelAnimationFrame(resizeFrame);
     }
 
-    svgStr += `</svg>`;
-    boardContainer.insertAdjacentHTML('beforeend', svgStr);
+    resizeFrame = requestAnimationFrame(() => {
+        drawConnections();
+        resizeFrame = null;
+    });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
     generateBoard();
     drawConnections();
 });
+
+window.addEventListener('resize', scheduleBoardRedraw);
+
+window.renderPlayerTokens = renderPlayerTokens;
+window.animateSpecialMove = animateSpecialMove;

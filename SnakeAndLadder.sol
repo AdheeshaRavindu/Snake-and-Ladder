@@ -68,26 +68,20 @@ contract SnakeAndLadder {
     // Handles ladder climbs and snake slides
     function applyBoardRules(uint256 pos) internal pure returns (uint256) {
         // Ladders configuration
-        if (pos == 4) return 98;
-        if (pos == 5) return 98;
-        if (pos == 6) return 98;
-        if (pos == 7) return 98;
-        if (pos == 8) return 98;
-        if (pos == 3) return 22;
-        if (pos == 15) return 44;
-        if (pos == 16) return 36;
-        if (pos == 17) return 37;
-        if (pos == 40) return 65;
-        if (pos == 71) return 92;
-        
+        if (pos == 3) return 16;
+        if (pos == 8) return 30;
+        if (pos == 21) return 42;
+        if (pos == 28) return 55;
+        if (pos == 36) return 57;
+        if (pos == 51) return 72;
+
         // Snakes configuration
-        if (pos == 12) return 2;
-        if (pos == 13) return 3;
-        if (pos == 14) return 4;
-        if (pos == 99) return 54;
-        if (pos == 87) return 24;
-        if (pos == 62) return 18;
-        if (pos == 48) return 26;
+        if (pos == 27) return 10;
+        if (pos == 47) return 26;
+        if (pos == 61) return 40;
+        if (pos == 74) return 53;
+        if (pos == 88) return 67;
+        if (pos == 97) return 79;
         
         return pos;
     }
