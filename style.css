@@ -554,6 +554,19 @@ select.input-control option {
     font-size: 0.92rem;
 }
 
+.app-credit {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--muted-text);
+    padding-bottom: 2px;
+}
+
+.app-credit span {
+    color: var(--accent-strong);
+}
+
 .board-label {
     position: absolute;
     z-index: 5;

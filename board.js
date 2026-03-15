@@ -72,18 +72,22 @@ function getPositionCoords(square) {
 function getSnakeCurvePoints(startSquare, endSquare) {
     const start = getPositionCoords(startSquare);
     const end = getPositionCoords(endSquare);
+    const { boardSize } = getBoardMetrics();
     const dx = end.x - start.x;
     const dy = end.y - start.y;
+    const lateralBend = Math.max(24, boardSize * 0.095);
+    const verticalLift = Math.max(18, boardSize * 0.07);
+    const tailDip = Math.max(20, boardSize * 0.075);
 
     return {
         start,
         c1: {
-            x: start.x + dx * 0.2 + (dy > 0 ? -48 : 48),
-            y: start.y + dy * 0.15 - 36
+            x: start.x + dx * 0.2 + (dy > 0 ? -lateralBend : lateralBend),
+            y: start.y + dy * 0.15 - verticalLift
         },
         c2: {
-            x: start.x + dx * 0.7 + (dy > 0 ? 56 : -56),
-            y: start.y + dy * 0.85 + 38
+            x: start.x + dx * 0.7 + (dy > 0 ? lateralBend * 1.15 : -(lateralBend * 1.15)),
+            y: start.y + dy * 0.85 + tailDip
         },
         end
     };
@@ -148,22 +152,33 @@ function createLadderSvg(startSquare, endSquare) {
 
 function createSnakeSvg(startSquare, endSquare) {
     const { start, c1, c2, end } = getSnakeCurvePoints(startSquare, endSquare);
+    const { boardSize } = getBoardMetrics();
+    const shadowWidth = Math.max(10, boardSize * 0.036);
+    const bodyWidth = Math.max(8, boardSize * 0.028);
+    const markWidth = Math.max(2, boardSize * 0.007);
+    const headRx = Math.max(8, boardSize * 0.026);
+    const headRy = Math.max(6, boardSize * 0.02);
+    const snoutRx = Math.max(4, boardSize * 0.014);
+    const snoutRy = Math.max(3, boardSize * 0.011);
+    const eyeR = Math.max(1.2, boardSize * 0.0032);
+    const tongueReach = Math.max(14, boardSize * 0.045);
+    const tailR = Math.max(3, boardSize * 0.01);
 
     const headAngle = Math.atan2(c1.y - start.y, c1.x - start.x) * (180 / Math.PI);
     const bodyPath = `M ${start.x} ${start.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${end.x} ${end.y}`;
 
     return `
         <g class="snake-group" data-snake-id="${startSquare}-${endSquare}" filter="url(#softShadow)">
-            <path class="snake-shadow" d="${bodyPath}" fill="none" stroke="#1a3a24" stroke-width="18" stroke-linecap="round" />
-            <path class="snake-main" d="${bodyPath}" fill="none" stroke="url(#snakeBody)" stroke-width="14" stroke-linecap="round" />
-            <path class="snake-marks" d="${bodyPath}" fill="none" stroke="#b8f5a2" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="1 15" opacity="0.8" />
+            <path class="snake-shadow" d="${bodyPath}" fill="none" stroke="#1a3a24" stroke-width="${shadowWidth}" stroke-linecap="round" />
+            <path class="snake-main" d="${bodyPath}" fill="none" stroke="url(#snakeBody)" stroke-width="${bodyWidth}" stroke-linecap="round" />
+            <path class="snake-marks" d="${bodyPath}" fill="none" stroke="#b8f5a2" stroke-width="${markWidth}" stroke-linecap="round" stroke-dasharray="1 15" opacity="0.8" />
             <g class="snake-head" transform="translate(${start.x}, ${start.y}) rotate(${headAngle})">
-                <ellipse cx="0" cy="0" rx="13" ry="10" fill="#70d36f" />
-                <ellipse cx="8" cy="0" rx="7" ry="5.5" fill="#9ef28f" />
-                <circle cx="4" cy="-3" r="1.8" fill="#0d1117" />
-                <path d="M 13 0 Q 20 2 24 0 Q 20 -2 13 0" fill="#ff7b7b" />
+                <ellipse cx="0" cy="0" rx="${headRx}" ry="${headRy}" fill="#70d36f" />
+                <ellipse cx="${headRx * 0.62}" cy="0" rx="${snoutRx}" ry="${snoutRy}" fill="#9ef28f" />
+                <circle cx="${headRx * 0.3}" cy="${-headRy * 0.3}" r="${eyeR}" fill="#0d1117" />
+                <path d="M ${headRx} 0 Q ${headRx + tongueReach * 0.45} 2 ${headRx + tongueReach} 0 Q ${headRx + tongueReach * 0.45} -2 ${headRx} 0" fill="#ff7b7b" />
             </g>
-            <circle cx="${end.x}" cy="${end.y}" r="5" fill="#6ecf6f" opacity="0.9" />
+            <circle cx="${end.x}" cy="${end.y}" r="${tailR}" fill="#6ecf6f" opacity="0.9" />
         </g>`;
 }
 
