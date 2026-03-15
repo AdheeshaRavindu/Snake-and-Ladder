@@ -113,6 +113,18 @@ body {
     flex-wrap: wrap;
 }
 
+.room-actions {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.join-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
 .glow-btn {
     border: 1px solid rgba(121, 210, 255, 0.38);
     background: linear-gradient(180deg, rgba(16, 42, 61, 0.96), rgba(9, 21, 31, 0.96));
@@ -237,6 +249,10 @@ select.input-control option {
     border: 1px solid var(--border);
     border-radius: 18px;
     background: var(--surface-soft);
+}
+
+.room-code-card {
+    margin-bottom: 12px;
 }
 
 .status-card,
@@ -716,10 +732,15 @@ select.input-control option {
     .top-bar,
     .top-actions,
     .setup-actions,
+    .room-actions,
     .board-stage-header,
     .dice-container {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .join-row {
+        grid-template-columns: 1fr;
     }
 
     .top-bar,

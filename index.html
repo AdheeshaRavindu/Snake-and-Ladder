@@ -16,7 +16,7 @@
 
         <header class="top-bar">
             <div class="brand-block">
-                <span class="eyebrow">Local Party Mode</span>
+                <span class="eyebrow">Firebase Multiplayer</span>
                 <div class="logo">Snake & Ladder</div>
             </div>
 
@@ -32,32 +32,38 @@
                 <div class="view-panel">
                     <div class="panel-header">
                         <div>
-                            <span class="panel-kicker">Setup</span>
-                            <h2>Players</h2>
+                            <span class="panel-kicker">Room</span>
+                            <h2>Online Match</h2>
                         </div>
                     </div>
 
                     <div class="setup-group">
-                        <label class="input-label" for="playerCount">Number of players</label>
-                        <select id="playerCount" class="input-control">
-                            <option value="1">1 Player</option>
-                            <option value="2">2 Players</option>
-                            <option value="3">3 Players</option>
-                            <option value="4">4 Players</option>
-                            <option value="5">5 Players</option>
-                        </select>
+                        <label class="input-label" for="playerNameInput">Your name</label>
+                        <input id="playerNameInput" class="input-control" type="text" maxlength="18" placeholder="Player name">
                     </div>
 
-                    <div id="playerSetupList" class="player-setup-list"></div>
+                    <div class="room-actions">
+                        <button id="createRoomBtn" class="glow-btn" type="button">Create Room</button>
+                    </div>
+
+                    <div class="join-row">
+                        <input id="roomCodeInput" class="input-control" type="text" maxlength="6" placeholder="Room code">
+                        <button id="joinRoomBtn" class="glow-btn secondary-btn" type="button">Join</button>
+                    </div>
+
+                    <div class="status-card room-code-card">
+                        <span class="mini-label">Room Code</span>
+                        <strong id="roomCodeLabel">Not connected</strong>
+                    </div>
 
                     <div class="setup-actions">
-                        <button id="startGameBtn" class="glow-btn" type="button">Start Game</button>
-                        <button id="resetGameBtn" class="glow-btn secondary-btn" type="button">Reset</button>
+                        <button id="startGameBtn" class="glow-btn" type="button" disabled>Start Game</button>
+                        <button id="leaveRoomBtn" class="glow-btn secondary-btn" type="button" disabled>Leave Room</button>
                     </div>
 
                     <div class="side-message-card">
                         <span class="panel-kicker">Game Feed</span>
-                        <div class="game-messages" id="gameMessages">Choose your players and press Start Game.</div>
+                        <div class="game-messages" id="gameMessages">Create or join a room to begin.</div>
                     </div>
                 </div>
             </aside>
@@ -92,7 +98,7 @@
 
                     <div class="status-card">
                         <span class="mini-label">Current Turn</span>
-                        <strong id="currentTurnLabel">Set up players to begin</strong>
+                        <strong id="currentTurnLabel">Waiting for room</strong>
                     </div>
 
                     <div class="status-card">
@@ -101,7 +107,7 @@
                     </div>
 
                     <div class="status-list-wrap">
-                        <span class="mini-label">Player Positions</span>
+                        <span class="mini-label">Players</span>
                         <div id="playerStatusList" class="player-status-list"></div>
                     </div>
 
@@ -120,6 +126,9 @@
         </main>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="audio.js"></script>
     <script src="board.js"></script>
     <script src="game.js"></script>
