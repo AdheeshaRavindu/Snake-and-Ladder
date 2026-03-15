@@ -752,6 +752,20 @@ select.input-control option {
         align-items: stretch;
     }
 
+    .view-panel {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .side-dice-card {
+        order: 1;
+    }
+
+    .status-card,
+    .status-list-wrap {
+        order: 2;
+    }
+
     .join-row {
         grid-template-columns: 1fr;
     }
